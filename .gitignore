@@ -1,0 +1,21 @@
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+*.xcuserstate
+*.xcuserdata/
+DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Secrets
+Secrets.xcconfig
+*.xcconfig
+
+# macOS
+.DS_Store
+
+# Swift Package Manager
+.build/
+.swiftpm/

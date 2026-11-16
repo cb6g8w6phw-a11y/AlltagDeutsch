@@ -1,0 +1,58 @@
+name: Build iOS IPA
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-ipa:
+    runs-on: macos-15
+
+    steps:
+      - name: Pobierz kod z repozytorium
+        uses: actions/checkout@v4
+
+      - name: Wybierz najnowsze Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+
+      - name: Zainstaluj XcodeGen i wygeneruj .xcodeproj
+        run: |
+          brew install xcodegen
+          xcodegen generate
+
+      - name: Przygotuj Secrets.xcconfig z GitHub Secrets
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "GEMINI_API_KEY = ${GEMINI_API_KEY}" > Secrets.xcconfig
+
+      - name: Zbuduj archiwum iOS (.xcarchive)
+        run: |
+          xcodebuild archive \
+            -project AlltagDeutsch.xcodeproj \
+            -scheme AlltagDeutsch \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath build/AlltagDeutsch.xcarchive \
+            -xcconfig Secrets.xcconfig \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Spakuj do pliku .ipa
+        run: |
+          mkdir -p build/ipa/Payload
+          cp -R build/AlltagDeutsch.xcarchive/Products/Applications/AlltagDeutsch.app build/ipa/Payload/
+          cd build/ipa
+          zip -r ../../AlltagDeutsch-unsigned.ipa Payload
+
+      - name: Opublikuj plik .ipa jako Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlltagDeutsch-iOS-IPA
+          path: AlltagDeutsch-unsigned.ipa
+          retention-days: 30
